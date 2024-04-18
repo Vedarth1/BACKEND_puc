@@ -63,7 +63,7 @@ def check_puc_validation():
                 return Response(json.dumps({
                     'status': "failed",
                     'message': "Failed to perform PUC validation",
-                    # 'error': response.json()
+                    'error': response.json()
                 }), status=response.status_code, mimetype='application/json')
         
     except Exception as e:

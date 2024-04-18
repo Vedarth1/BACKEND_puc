@@ -11,69 +11,6 @@ from ultralytics.yolo.utils import DEFAULT_CONFIG, ROOT, ops
 from ultralytics.yolo.utils.checks import check_imgsz
 from ultralytics.yolo.utils.plotting import Annotator, colors
 import json
-word_set ={
-    "IND",
-    " ",
-    "-",
-    "_",
-     "MARUTI SUZUKI",
-    "HYUNDAI",
-    "TATA MOTORS",
-    "MAHINDRA & MAHINDRA",
-    "TOYOTA",
-    "HONDA",
-    "FORD",
-    "RENAULT",
-    "NISSAN",
-    "VOLKSWAGEN",
-    "MERCEDES-BENZ",
-    "BMW",
-    "AUDI",
-    "SKODA",
-    "VOLVO",
-    "JEEP",
-    "KIA",
-    "MG MOTOR",
-    "JAGUAR LAND ROVER",
-    "FIAT",
-    "LAMBORGHINI",
-    "PORSCHE",
-    "ROLLS-ROYCE",
-    "BENTLEY",
-    "ASTON MARTIN",
-    "FERRARI",
-    "MASERATI",
-    "ISUZU",
-    "FORCE MOTORS",
-    "PREMIER",
-    "BAJAJ AUTO",
-    "TVS MOTORS",
-    "HERO MOTOCORP",
-    "ROYAL ENFIELD",
-    "MAHINDRA TWO WHEELERS",
-    "YAMAHA",
-    "SUZUKI MOTORCYCLE",
-    "KAWASAKI",
-    "TRIUMPH MOTORCYCLES",
-    "HARLEY-DAVIDSON",
-    "HYOSUNG",
-    "INDIAN MOTORCYCLE",
-    "PIAGGIO",
-    "DUCATI",
-    "APRILIA",
-    "BENELLI",
-    "MV AGUSTA",
-    "NORTON",
-    "HUSQVARNA",
-    "BMW MOTORRAD",
-    "KTM",
-    "JAWA",
-    "TRIUMPH MOTORCYCLES",
-    "KYMCO",
-    "OLA ELECTRIC",
-    "MANHONDA",
-    "SUDARSHANHONDA"
-}
 
 class DetectionPredictor(BasePredictor):
 
@@ -128,7 +65,6 @@ class DetectionPredictor(BasePredictor):
         if len(det) == 0:
             return log_string
 
-        # extracted_texts=[]
         for i, (*xyxy, conf, cls) in enumerate(reversed(det)):
             c = int(cls)
             label = None if self.args.hide_labels else self.model.names[c]
@@ -142,56 +78,7 @@ class DetectionPredictor(BasePredictor):
                 object_pil_img.save(
                     self.save_dir / 'results' / f'{os.path.splitext(os.path.basename(p))[0]}_object_{idx}_{i}.jpg')
 
-                # Perform OCR on the cropped object image
-                # print("performing ocr")
-                print(object_pil_img)
-                # object_text = self.perform_ocr(object_pil_img)
-                # print("OCR Text:", object_text)
-                # extracted_texts.append(object_text)
-
-                # os.remove(self.save_dir / 'results' / f'{os.path.splitext(os.path.basename(p))[0]}_object_{idx}_{i}.jpg')
-
-        # print(log_string)
-        # print(extracted_texts)
         return log_string
-    
-    def perform_ocr(self, image):
-        # Convert image to byte stream
-        img_byte_arr = BytesIO()
-        image.save(img_byte_arr, format='JPEG')
-        img_byte_arr = img_byte_arr.getvalue()
-
-        # Prepare form data
-        form_data = {
-            'image': ('image.jpg', img_byte_arr)
-        }
-
-        # Make POST request to OCR API endpoint
-        headers = {
-            'X-RapidAPI-Key': '139c90d5bdmsh887cd3b63935516p1969a0jsn785beb400347',
-            'X-RapidAPI-Host': 'ocr43.p.rapidapi.com'
-        }
-        response = requests.post('https://ocr43.p.rapidapi.com/v1/results', headers=headers, files=form_data)
-
-        ocr_response=response.json()
-        text=ocr_response['results'][0]['entities'][0]['objects'][0]['entities'][0]['text']
-        text=self.parse_rc_number(text,word_set)
-        if response.status_code == 200:
-            return text
-        else:
-            return "Error performing OCR"
-    
-    def parse_rc_number(self, extracted_text, word_set):
-        text_blocks = extracted_text.split('\n')
-        result = ""
-        for text in text_blocks:
-            if text not in word_set and len(text) >= 2:
-                result += text
-            if(len(result)>=10):
-                break
-        result = result.replace(" ", "")
-        return result
-
 
 @hydra.main(version_base=None, config_path=str(DEFAULT_CONFIG.parent), config_name=DEFAULT_CONFIG.name)
 def predict(cfg):
