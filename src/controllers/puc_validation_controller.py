@@ -47,18 +47,22 @@ def check_puc_validation():
                 print(puc_data)
                 vehicle_puc_details = puc_data["result"].get("vehicle_pucc_details", {})
                 print(vehicle_puc_details)
-                vehicle_details = VehicleDetails(data["rc_number"], vehicle_puc_details)
 
-                # handle for invalid puc
-
-
-
-                vehicle_details.save_to_db()
-                return Response(json.dumps({
-                    'status': "success",
-                    'message': "PUC validation performed successfully",
-                    'vehicle_data': vehicle_puc_details
-                }), status=200, mimetype='application/json')
+                if vehicle_puc_details:
+                    vehicle_details = VehicleDetails(data["rc_number"], vehicle_puc_details)
+                    vehicle_details.save_to_db()
+                    
+                    return Response(json.dumps({
+                        'status': "success",
+                        'message': "PUC is valid!!",
+                        'vehicle_data': vehicle_puc_details
+                    }), status=200, mimetype='application/json')
+                else:
+                    return Response(json.dumps({
+                        'status': "success",
+                        'message': "PUC is invalid!!",
+                        'vehicle_data': vehicle_puc_details
+                    }), status=200, mimetype='application/json')
             else:
                 return Response(json.dumps({
                     'status': "failed",

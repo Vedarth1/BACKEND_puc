@@ -60,7 +60,13 @@ def process_image():
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
     except Exception as e:
-        print("Error deleting temporary file:", e)
+        return Response(
+            response=json.dumps({'status': "failed",
+                                 "message": "Error in removing the temporary file",
+                                 "error": str(e)}),
+            status=500,
+            mimetype='application/json'
+        )
 
     print("performing ocr")
 
@@ -105,7 +111,15 @@ def process_image():
             if os.path.exists(file_path):
                 os.remove(file_path)
         except Exception as e:
-            print("Error deleting temporary file:", e)
+            return Response(
+                response=json.dumps({'status': "failed",
+                                    "message": "Error in remove the temporary file",
+                                    "error": str(e)}),
+                status=500,
+                mimetype='application/json'
+            )
+        
+
 
     return Response(json.dumps({
         'response':image_processed_data,
