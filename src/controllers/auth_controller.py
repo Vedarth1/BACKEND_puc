@@ -9,22 +9,21 @@ from src.library.hashing import hash_password, check_password_hash
 users = Blueprint("users", __name__)
 
 # route for login api/users/signin
-@users.route('/login', methods = ["POST"])
+@users.route('/login', methods=["POST"])
 def handle_login():
-    try: 
-        # first check user parameters
+    try:
         data = request.json
-        if "email" and "password" in data:
-            # check db for user records
+        if "email" in data and "password" in data and "user_type" in data:
+            # Check database for user records based on user_type
             users_collection = mongo_db.users
-            user_data = users_collection.find_one({"email": data["email"]})
+            user_data = users_collection.find_one({"email": data["email"], "user_type": data["user_type"]})
 
-            # if user records exists we will check user password
+            # If user records exist, check user password
             if user_data:
-                # check user password
+                # Check user password
                 if check_password_hash(user_data["password"], data["password"]):
                     # User password matched, generate token
-                    token = generate_token(user_data["_id"],user_data)
+                    token = generate_token(user_data["_id"], user_data)
                     return Response(
                         response=json.dumps({'status': "success",
                                              "message": "User LogIn Successful",
@@ -33,27 +32,29 @@ def handle_login():
                         mimetype='application/json'
                     )
                 else:
+                    # Password mismatch
                     return Response(
                         response=json.dumps({'status': "failed", "message": "User Password Mismatched"}),
                         status=401,
                         mimetype='application/json'
                     )
-            # If there is no user record
             else:
+                # User record doesn't exist
                 return Response(
                     response=json.dumps({'status': "failed", "message": "User Record doesn't exist, kindly register"}),
                     status=404,
                     mimetype='application/json'
                 )
         else:
-            # If request parameters are not correct
+            # Incorrect request parameters
             return Response(
-                response=json.dumps({'status': "failed", "message": "User Parameters Email and Password are required"}),
+                response=json.dumps({'status': "failed", "message": "User Parameters Email, Password, and User Type are required"}),
                 status=400,
                 mimetype='application/json'
             )
 
     except Exception as e:
+        # Error occurred
         return Response(
             response=json.dumps({'status': "failed",
                                  "message": "Error Occurred",
@@ -63,54 +64,62 @@ def handle_login():
         )
 
 
-
 # route for login api/users/signup
-@users.route('/signup', methods = ["POST"])
+@users.route('/signup', methods=["POST"])
 def handle_signup():
     try:
         # First validate required user parameters
         data = request.json
-        if "firstname" in data and "lastname" in data and "email" in data and "password" in data:
-            # Validate if the user exists
-            users_collection = mongo_db.users
-            existing_user = users_collection.find_one({"email": data["email"]})
+        if "username" in data and "email" in data and "password" in data and "confirm_password" in data and "user_type" in data:
+            # Check if password matches confirm_password
+            if data["password"] == data["confirm_password"]:
+                # Validate if the user exists
+                users_collection = mongo_db.users
+                existing_user = users_collection.find_one({"email": data["email"]})
 
-            # If the user doesn't exist
-            if not existing_user:
-                # Hash the password
-                hashed_password = hash_password(data['password'])
+                # If the user doesn't exist
+                if not existing_user:
+                    # Hash the password
+                    hashed_password = hash_password(data['password'])
 
-                # Create user data
-                user_data = {
-                    "firstname": data["firstname"],
-                    "lastname": data["lastname"],
-                    "email": data["email"],
-                    "password": hashed_password
-                }
+                    # Create user data
+                    user_data = {
+                        "username": data["username"],
+                        "email": data["email"],
+                        "password": hashed_password,
+                        "user_type": data["user_type"]  # Add user type to user data
+                    }
 
-                # Insert user data into the database
-                inserted_user = users_collection.insert_one(user_data)
-                print(inserted_user)
-                token = generate_token(inserted_user.inserted_id,user_data)
-                return Response(
-                    response=json.dumps({'status': "success",
-                                         "message": "User Sign up Successful",
-                                         "token": token}),
-                    status=201,
-                    mimetype='application/json'
-                )
+                    # Insert user data into the database
+                    inserted_user = users_collection.insert_one(user_data)
+                    token = generate_token(inserted_user.inserted_id, user_data)
+                    return Response(
+                        response=json.dumps({'status': "success",
+                                             "message": "User Sign up Successful",
+                                             "token": token}),
+                        status=201,
+                        mimetype='application/json'
+                    )
+                else:
+                    # If user already exists
+                    return Response(
+                        response=json.dumps({'status': "failed", "message": "User already exists, kindly sign in"}),
+                        status=409,
+                        mimetype='application/json'
+                    )
             else:
-                # If user already exists
+                # If password and confirm_password do not match
                 return Response(
-                    response=json.dumps({'status': "failed", "message": "User already exists, kindly sign in"}),
-                    status=409,
+                    response=json.dumps({'status': "failed",
+                                         "message": "Password and Confirm Password do not match"}),
+                    status=400,
                     mimetype='application/json'
                 )
         else:
             # If request parameters are not correct
             return Response(
                 response=json.dumps({'status': "failed",
-                                     "message": "User Parameters Firstname, Lastname, Email and Password are required"}),
+                                     "message": "User Parameters Username, Email, Password, Confirm Password, and User Type are required"}),
                 status=400,
                 mimetype='application/json'
             )
