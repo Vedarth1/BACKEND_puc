@@ -6,6 +6,8 @@ from PIL import Image
 from flask import request, Response, json, Blueprint
 from werkzeug.utils import secure_filename
 from src.services.parsing_service import parse_rc_number
+from src.services.validation_service import perform_puc_validation
+from src.models.puc_info import VehicleDetails
 
 image_processing = Blueprint("image_processing", __name__)
 
@@ -78,7 +80,7 @@ def process_image():
         image_dir+='/results'
 
         headers = {
-            'X-RapidAPI-Key': '0cbdcbfe4cmsh1e8541eecba47ebp1f85d7jsn650f234d3ec9',
+            'X-RapidAPI-Key': os.getenv("RAPID_OCR_API_KEY"),
             'X-RapidAPI-Host': 'ocr43.p.rapidapi.com'
         }
 
@@ -123,14 +125,59 @@ def process_image():
             
         image_processed_data=parse_rc_number(image_processed_data)
 
+        result_rto_info=[]
+
+        for rc_number in image_processed_data:
+            print("extracting rto info")
+            rto_response = perform_puc_validation(rc_number)
+            if "error" in rto_response:
+                error_message=rto_response["error"]
+                return Response(
+                    response=json.dumps({'status': "failed", "message": f"Validation Error: {error_message}"}),
+                    status=400,
+                    mimetype='application/json'
+                )
+            message = ""
+            vehicle_pucc_details = rto_response["result"]["vehicle_pucc_details"]
+            if vehicle_pucc_details is not None:
+                message = "PUC is Valid!!"
+            else:
+                message = "PUC is InValid!!"
+            reg_no = rto_response["result"]["reg_no"]
+            owner_name = rto_response["result"]["owner_name"]
+            model = rto_response["result"]["model"]
+            state = rto_response["result"]["state"]
+
+            formatted_data = {
+                "message": message,
+                "reg_no": reg_no,
+                "owner_name": owner_name,
+                "model": model,
+                "state": state,
+                "vehicle_pucc_details": vehicle_pucc_details
+            }
+
+            print("Saving in db!!")
+            vehicle_details = VehicleDetails(
+                reg_no=formatted_data["reg_no"],
+                owner_name=formatted_data["owner_name"],
+                model=formatted_data["model"],
+                state=formatted_data["state"],
+                vehicle_pucc_details=formatted_data["vehicle_pucc_details"]
+            )
+
+            vehicle_details.save_to_db()
+
+            print("Saved in db")
+            result_rto_info.append(formatted_data)
+
         return Response(json.dumps({
-            'response':image_processed_data,
+            'response':result_rto_info,
             'status': "success",
             'message': "Image processing done successfully",
         }), status=200, mimetype='application/json')
     
     except Exception as e:
-        print(e)
         return Response(
             response=json.dumps({'status': "failed",
                                  "message": "Error Occurred",

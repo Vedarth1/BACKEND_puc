@@ -57,6 +57,7 @@ word_set ={
     "JAWA",
     "TRIUMPH MOTORCYCLES",
     "KYMCO",
+    "KAUN",
     "OLA ELECTRIC",
 }
 
@@ -70,7 +71,11 @@ def parse_rc_number(extracted_text):
                 result += text
         result = result.replace(" ", "")
         result = result.replace(".", "")
+        result = result.replace("-", "")
         print(result)
         resultarr.append(result)
         
+    while "" in resultarr:
+        resultarr.remove("")
+
     return resultarr
