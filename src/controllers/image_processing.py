@@ -80,7 +80,7 @@ def process_image():
         image_dir+='/results'
 
         headers = {
-            'X-RapidAPI-Key': os.getenv("RAPID_OCR_API_KEY"),
+            'X-RapidAPI-Key': '76d33a39e0msh9ddfd59e5c10841p1a613ajsn8d0bd9a25fd3',
             'X-RapidAPI-Host': 'ocr43.p.rapidapi.com'
         }
 
@@ -89,7 +89,6 @@ def process_image():
         for filename in os.listdir(image_dir):
             file_path = os.path.join(image_dir, filename)
 
-            # Open the image file and convert it to RGB
             image = Image.open(file_path).convert("RGB")
             img_byte_arr = BytesIO()
             image.save(img_byte_arr, format='JPEG')
@@ -101,6 +100,8 @@ def process_image():
 
             response = requests.post('https://ocr43.p.rapidapi.com/v1/results', headers=headers, files=form_data)
             ocr_response=response.json()
+            print(ocr_response)
+
             text=ocr_response['results'][0]['entities'][0]['objects'][0]['entities'][0]['text']
             if response.status_code == 200:
                 image_processed_data.append(text)
@@ -124,6 +125,8 @@ def process_image():
                 )
             
         image_processed_data=parse_rc_number(image_processed_data)
+
+        print(image_processed_data)
 
         result_rto_info=[]
 

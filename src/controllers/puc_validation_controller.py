@@ -20,6 +20,7 @@ def check_puc_validation():
 
         if "error" in rto_response:
             error_message=rto_response["error"]
+            print("error_message", error_message)
             return Response(
                 response=json.dumps({'status': "failed", "message": f"Validation Error: {error_message}"}),
                 status=400,
