@@ -56,8 +56,8 @@ def process_image():
             return Response(json.dumps({
                 'status': "failed",
                 'message': "Model finds an error while processing",
-                'error': response.json()
-            }), status=response.status_code, mimetype='application/json')
+                'error': str(e)
+            }), status=500, mimetype='application/json')
         
         print("image processed by model")
 
