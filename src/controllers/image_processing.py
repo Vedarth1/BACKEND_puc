@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from src.services.parsing_service import parse_rc_number
 from src.services.validation_service import perform_puc_validation
 from src.models.puc_info import VehicleDetails
+from src import mongo_db
 import os
 
 image_processing = Blueprint("image_processing", __name__)
@@ -132,6 +133,29 @@ def process_image():
         result_rto_info=[]
 
         for rc_number in image_processed_data:
+
+            vehiclecollections=mongo_db.puc_info
+            existing_vehicle = vehiclecollections.find_one({"reg_no": rc_number})
+
+            if existing_vehicle:
+                vehicle_pucc_details = existing_vehicle.get("vehicle_pucc_details")
+                if vehicle_pucc_details is not None:
+                    message = "PUC is Valid!!"
+                else:
+                    message = "PUC is Invalid!!"
+
+                formatted_data = {
+                    "message": message,
+                    "reg_no": existing_vehicle.get("reg_no"),
+                    "owner_name": existing_vehicle.get("owner_name"),
+                    "model": existing_vehicle.get("model"),
+                    "state": existing_vehicle.get("state"),
+                    "vehicle_pucc_details": vehicle_pucc_details
+                }
+
+                result_rto_info.append(formatted_data)
+                continue
+
             print("extracting rto info")
             rto_response = perform_puc_validation(rc_number)
             if "error" in rto_response:

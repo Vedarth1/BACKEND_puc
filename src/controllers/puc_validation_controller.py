@@ -1,6 +1,7 @@
 from flask import request, Response, json, Blueprint
 from src.services.validation_service import perform_puc_validation
 from src.models.puc_info import VehicleDetails
+from src import mongo_db
 
 puc_validation = Blueprint("puc_validation", __name__)
 
@@ -14,6 +15,32 @@ def check_puc_validation():
                 status=400,
                 mimetype='application/json'
             )
+        
+        vehiclecollections=mongo_db.puc_info
+        existing_vehicle = vehiclecollections.find_one({"reg_no": data["rc_number"]})
+        
+        if existing_vehicle:
+            message = ""
+            vehicle_pucc_details = existing_vehicle.get("vehicle_pucc_details")
+            if vehicle_pucc_details is not None:
+                message = "PUC is Valid!!"
+            else:
+                message = "PUC is Invalid!!"
+
+            formatted_data = {
+                "message": message,
+                "reg_no": existing_vehicle.get("reg_no"),
+                "owner_name": existing_vehicle.get("owner_name"),
+                "model": existing_vehicle.get("model"),
+                "state": existing_vehicle.get("state"),
+                "vehicle_pucc_details": vehicle_pucc_details
+            }
+            return Response(
+                response=json.dumps(formatted_data),
+                status=200,
+                mimetype='application/json'
+            )
+        
         
         rto_response = perform_puc_validation(data["rc_number"])
         print(rto_response)
