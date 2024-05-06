@@ -1,9 +1,10 @@
 import requests
+import os;
 
 RAPID_API_URL = "https://rto-vehicle-information-verification-india.p.rapidapi.com/api/v1/rc/vehicleinfo"
 RAPID_API_HEADERS = {
     'content-type': 'application/json',
-    'X-RapidAPI-Key': '2c328b0865msh5231be45032bfdbp11fa6djsn6969dbbad1b3',
+    'X-RapidAPI-Key': os.getenv("RAPID_API_RTO_KEY"),
     'X-RapidAPI-Host': 'rto-vehicle-information-verification-india.p.rapidapi.com'
 }
 

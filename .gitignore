@@ -5,6 +5,7 @@
 instance/*
 !instance/.gitignore
 .webassets-cache
+.env
 
 runs
 myenv

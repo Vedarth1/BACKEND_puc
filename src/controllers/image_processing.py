@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from src.services.parsing_service import parse_rc_number
 from src.services.validation_service import perform_puc_validation
 from src.models.puc_info import VehicleDetails
+import os
 
 image_processing = Blueprint("image_processing", __name__)
 
@@ -80,7 +81,7 @@ def process_image():
         image_dir+='/results'
 
         headers = {
-            'X-RapidAPI-Key': '76d33a39e0msh9ddfd59e5c10841p1a613ajsn8d0bd9a25fd3',
+            'X-RapidAPI-Key': os.getenv("RAPID_API_OCR_KEY"),
             'X-RapidAPI-Host': 'ocr43.p.rapidapi.com'
         }
 
