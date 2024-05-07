@@ -9,9 +9,10 @@ from src.services.parsing_service import parse_rc_number
 from src.services.validation_service import perform_puc_validation
 from src.models.puc_info import VehicleDetails
 from src import mongo_db
+from flask_cors import CORS
 import os
-
 image_processing = Blueprint("image_processing", __name__)
+CORS(image_processing)
 
 @image_processing.route('/process_image',methods=["POST"])
 def process_image():

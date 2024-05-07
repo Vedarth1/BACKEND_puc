@@ -2,8 +2,11 @@ from flask import request, Response, json, Blueprint
 from src.services.validation_service import perform_puc_validation
 from src.models.puc_info import VehicleDetails
 from src import mongo_db
+from flask_cors import CORS
 
 puc_validation = Blueprint("puc_validation", __name__)
+
+CORS(puc_validation)
 
 @puc_validation.route('/puc_status', methods=["POST"])
 def check_puc_validation():

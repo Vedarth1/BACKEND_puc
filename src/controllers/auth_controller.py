@@ -4,9 +4,10 @@ from src.models.user_model import User
 from src import mongo_db
 from src.services.jwt_service import generate_token
 from src.library.hashing import hash_password, check_password_hash
-
+from flask_cors import CORS
 # user controller blueprint to be registered with api blueprint
 users = Blueprint("users", __name__)
+CORS(users)
 
 # route for login api/users/signin
 @users.route('/login', methods=["POST"])
