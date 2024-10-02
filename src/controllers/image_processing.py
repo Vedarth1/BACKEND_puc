@@ -181,5 +181,6 @@ def process_image():
             mimetype='application/json'
         )
     finally:
+        image_dir = os.path.join(os.getcwd(), 'image_dir')
         if os.path.exists(image_dir):
                 os.rmdir(image_dir)
