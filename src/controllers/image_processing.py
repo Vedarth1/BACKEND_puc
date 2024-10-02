@@ -1,6 +1,6 @@
 import requests
 import os
-import subprocess
+import zipfile
 from io import BytesIO
 from PIL import Image
 from flask import request, Response, json, Blueprint
@@ -10,7 +10,6 @@ from src.services.validation_service import perform_puc_validation
 from src.models.puc_info import VehicleDetails
 from src import mongo_db
 from flask_cors import CORS
-import os
 image_processing = Blueprint("image_processing", __name__)
 CORS(image_processing)
 
@@ -18,69 +17,36 @@ CORS(image_processing)
 def process_image():
     try:
         if 'file' not in request.files:
-            return Response(
-                response=json.dumps({'error': 'No file uploaded'}),
-                status=400,
-                mimetype='application/json'
-            )
+            raise ValueError("File not found")
         
         file = request.files['file']
 
         if file.filename == '':
-            return Response(
-                response=json.dumps({'error': 'Empty file uploaded'}),
-                status=400,
-                mimetype='application/json'
-            )
+            raise ValueError("File not found")
         
-        filename = secure_filename(file.filename)
+        URL = os.getenv("MODEL_API_URL")
+        files = {'file': (file.filename, file, file.content_type)}
         
-        # Set the file extension to ".jpg"
-        filename_with_extension = filename.rsplit('.', 1)[0] + '.jpg'
+        Apiresponse = requests.post(URL, files=files)
 
-        # Create a temporary directory if it doesn't exist
-        temp_dir = os.path.join(os.getcwd(), 'temp')
-        if not os.path.exists(temp_dir):
-            os.makedirs(temp_dir)
-        
-        # Save the file to the temporary directory
-        temp_file_path = os.path.join(temp_dir, filename_with_extension)
-        file.save(temp_file_path)
+        # Ensure the response contains a ZIP file
+        if 'application/zip' in Apiresponse.headers.get('Content-Type'):
+            zip_file = BytesIO(Apiresponse.content)  # Store zip file in memory
 
-        print("File received!!! \n Model is working on image!")
+            # Unzipping the file
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                # Create a directory to store the unzipped files
+                image_dir = os.path.join(os.getcwd(), 'image_dir')
+                if not os.path.exists(image_dir):
+                    os.makedirs(image_dir)
 
-        command = f"python Detection-model/ultralytics/yolo/v8/detect/predict.py model='Detection-model/newpts.pt' source=\"{temp_file_path}\""
+                # Extract all files into the directory
+                zip_ref.extractall(image_dir)
 
-        try:
-            output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as e:
-            return Response(json.dumps({
-                'status': "failed",
-                'message': "Model finds an error while processing",
-                'error': str(e)
-            }), status=500, mimetype='application/json')
-        
-        print("image processed by model")
-
-        # Remove the temporary file
-        try:
-            if os.path.exists(temp_file_path):
-                os.remove(temp_file_path)
-        except Exception as e:
-            return Response(
-                response=json.dumps({'status': "failed",
-                                    "message": "Error in removing the temporary file",
-                                    "error": str(e)}),
-                status=500,
-                mimetype='application/json'
-            )
+        else:
+            raise ValueError("Expected a zip file in the API response.")
 
         print("performing ocr")
-
-        image_dir = os.path.dirname(__file__)
-        while not os.path.isfile(os.path.join(image_dir, 'requirements.txt')):
-            image_dir = os.path.dirname(image_dir)
-        image_dir+='/results'
 
         headers = {
             'X-RapidAPI-Key': os.getenv("RAPID_API_OCR_KEY"),
@@ -214,3 +180,6 @@ def process_image():
             status=500,
             mimetype='application/json'
         )
+    finally:
+        if os.path.exists(image_dir):
+                os.rmdir(image_dir)
