@@ -1,0 +1,96 @@
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+
+// WiFi credentials
+const char* ssid = "vinay";
+const char* password = "123456789";
+
+// Server endpoint
+const char* serverName = "http://127.0.0.1:8000/api/puc/gas_detection";
+
+// MQ sensor pin
+const int sensorPin = A0;
+
+// Variables for gas concentration calculation
+float sensorValue = 0;  // Raw analog input from sensor
+float R0 = 10.0;        // Sensor resistance in clean air (Ohms)
+float RS = 0;           // Sensor resistance in the gas atmosphere (Ohms)
+float ratio = 0;        // Ratio of RS/R0
+float ppm = 0;          // Gas concentration in ppm
+
+WiFiClient wifiClient;  // Create a WiFiClient object
+
+void setup() {
+  Serial.begin(3600);
+  delay(10);
+  Serial.println('\n');
+  
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi ..");
+
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print('.');
+    delay(1000);
+    attempts++;
+    if (attempts > 20) {  // Try for 20 seconds
+      Serial.println("\nFailed to connect. Restarting...");
+      ESP.restart();
+    }
+  }
+
+  Serial.println('\n');
+  Serial.println("Connection established!");  
+  Serial.print("IP address:\t");
+  Serial.println(WiFi.localIP());
+
+  // Setup the sensor pin
+  pinMode(sensorPin, INPUT);
+}
+
+void loop() {
+  // Read the sensor value
+  sensorValue = analogRead(sensorPin);
+  
+  // Convert the analog value to gas concentration in ppm
+  RS = ((1023.0 / sensorValue) - 1.0) * R0;
+  ratio = RS / R0;
+  ppm = pow(ratio, -2.25); // Example formula, adjust based on MQ sensor datasheet
+  
+  // Print the ppm value to the serial monitor
+  Serial.print("Gas Concentration (ppm): ");
+  Serial.println(ppm);
+
+  // Check if Wi-Fi is still connected
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+
+    // Start connection and send HTTP POST request (use WiFiClient with http.begin)
+    http.begin(wifiClient, serverName);
+    http.addHeader("Content-Type", "application/json");
+
+    // Create the JSON payload
+    String postData = "{\"ppm\":" + String(ppm) + "}";
+
+    // Send the request
+    int httpResponseCode = http.POST(postData);
+
+    // Check the response
+    if (httpResponseCode > 0) {
+      String response = http.getString();
+      Serial.println("HTTP Response code: " + String(httpResponseCode));
+      Serial.println("Response: " + response);
+    } else {
+      Serial.println("Error on sending POST: " + String(httpResponseCode));
+    }
+
+    // End the HTTP connection
+    http.end();
+  } else {
+    Serial.println("Wi-Fi not connected");
+  }
+
+  // Wait before sending the next reading (adjust as needed)
+  delay(6000); // 1-minute delay between readings
+}
