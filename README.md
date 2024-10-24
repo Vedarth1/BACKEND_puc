@@ -1,4 +1,4 @@
-Link to frontend repo : `https://github.com/Vedarth1/ECOWATCH`
+Link to frontend repo : [https://github.com/Vedarth1/ECOWATCH]
 
 To run the repo follow the steps given bellow:
 
